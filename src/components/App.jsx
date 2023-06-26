@@ -1,14 +1,11 @@
 import React from "react";
-// import { Component } from 'react';
-import { useState, useRef } from 'react';
-
+import { useState, useRef, useEffect} from 'react';
 import { Searchbar } from "./Searchbar/Searchbar";
 import { ImageGallery } from './ImageGallery/ImageGallery';
-import { PixabayAPI } from './FetchPic/FetchPic';
+import { PixabayAPI } from '../pixabayAPI';
 import { LoadMoreBtn } from './Button/Button';
 import { Loader } from './Loader/Loader';
 import css from "./App.module.css";
-import { useState } from "react";
 
 
 const pixabayAPI = new PixabayAPI(); 
@@ -29,41 +26,48 @@ export const App = () => {
     const  hamdleLoadMoreButton = () => {
         setPage(prevState => prevState + 1);
     }
-    
-    const fetchPicData = async () => {
-      pixabayAPI.q = keyWord.trim();
-      pixabayAPI.page = page;
 
-      try { 
-        if (previousKeyWordRef.current !== keyWord) {
-          setImages([])
+    useEffect(() => {
+        if (!keyWord) {
+            return
         }
+
+        const fetchPicData = async () => {
+        pixabayAPI.q = keyWord.trim();
+        pixabayAPI.page = page;
+
+        try {
+            if (previousKeyWordRef.current !== keyWord) {
+                setImages([])
+            }
         
         
-          setError(false);
-          setIsLoading(true);
+            setError(false);
+            setIsLoading(true);
     
 
-        const { data: { totalHits, hits } } = await pixabayAPI.fetchPhotos()
-          if (totalHits > 0) {
-              const newHits = hits.map(({ id, webformatURL, largeImageURL }) => ({ id, webformatURL, largeImageURL }));
-              setImages(pverState => [...pverState, ...newHits]);
+            const { data: { totalHits, hits } } = await pixabayAPI.fetchPhotos()
+            if (totalHits > 0) {
+                const newHits = hits.map(({ id, webformatURL, largeImageURL }) => ({ id, webformatURL, largeImageURL }));
+                setImages(pverState => [...pverState, ...newHits]);
 
-          const totalPage = Math.ceil(totalHits / pixabayAPI.perPage);
-              setMorePics(totalPage !== page);
+                const totalPage = Math.ceil(totalHits / pixabayAPI.perPage);
+                setMorePics(totalPage !== page);
+            }
         }
-      }
-      catch (error) {
-        this.setState({
-          error,
-          images: [],
-          morePics: false,
-        })
-      } finally {
-        this.setState({ isLoading: false })
-      };
-    
-  }
+        catch (error) {
+            setError(error);
+            setImages([]);
+            setMorePics(false);
+        } finally {
+            setIsLoading(false)
+        };
+        };
+        
+        fetchPicData();
+        return () => {previousKeyWordRef.current = keyWord}
+    }, [keyWord, page]
+    );
     
     return (
       <div>
@@ -75,88 +79,4 @@ export const App = () => {
         </div>
       </div>
   );
-
 }
-
-export class OldApp extends Component{
-  state = {
-    keyWord: '',
-    error: false,
-    images: [],
-    page: 1,
-    morePics: false,
-    showModal: false,
-    isLoading: false
-  }
-
-
-  handleSearchImg = searchWord => {
-    this.setState({
-      keyWord: searchWord,
-      page: 1,
-    })
-  }
-
-  hamdleLoadMoreButton = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-  }
-
-
-  componentDidUpdate = async (_, prevState) => {
-    const { keyWord, page } = this.state;
-    if (prevState.keyWord !== keyWord || prevState.page !== page) {
-
-      pixabayAPI.q = keyWord.trim();
-      pixabayAPI.page = page;
-
-      try { 
-        if (prevState.keyWord !== keyWord) {
-          this.setState({
-            images: [],
-          })
-        }
-        
-        this.setState({
-          error: false,
-          isLoading: true,
-        })
-
-        const { data: { totalHits, hits } } = await pixabayAPI.fetchPhotos()
-          if (totalHits > 0) {
-            const newHits = hits.map(({ id, webformatURL, largeImageURL }) => ({ id, webformatURL, largeImageURL }))
-            this.setState(pverState => ({
-              images: [...pverState.images, ...newHits],
-            }))
-
-          const totalPage = Math.ceil(totalHits / pixabayAPI.perPage);
-          this.setState({morePics: totalPage !== page,})
-        }
-      }
-      catch (error) {
-        this.setState({
-          error,
-          images: [],
-          morePics: false,
-        })
-      } finally {
-        this.setState({ isLoading: false })
-      };
-    }
-  }
-  
-  render() {
-    const { images, error, morePics, isLoading} = this.state;
-    return (
-      <div>
-        <Searchbar handleSubmit={this.handleSearchImg} />
-        <div className={css.container}>
-          {!error && <ImageGallery images={images} />}
-          {isLoading && <Loader/>}
-          {morePics && <LoadMoreBtn handleClick={this.hamdleLoadMoreButton} />}
-        </div>
-      </div>
-  );
-  }
-};

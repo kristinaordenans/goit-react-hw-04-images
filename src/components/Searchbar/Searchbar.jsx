@@ -1,43 +1,36 @@
 import css from "./Searchbar.module.css";
-import { Component } from "react";
+import {  useState } from "react";
 
-export class Searchbar extends Component {
-    state = {
-        searchWord: '',
+
+export const Searchbar = ({handleSubmit}) => {
+    const [searchWord, setSearchWord] = useState('');
+
+     const handleChange = e => {
+        const { value } = e.currentTarget;
+        setSearchWord(value)
     }
 
-    handleChange = e => {
-        const { name, value } = e.currentTarget;
-        this.setState({
-            [name]: value,
-        })
-    }
-
-    handleSubmit = e => {
+    const handleSubmitForm = e => {
         e.preventDefault();
-        const { handleSubmit } = this.props;
-        const { searchWord } = this.state;
         
         if (searchWord.trim() === '') {
             return ('The field cannot be empty. Please enter a search query')
         }
 
         handleSubmit(searchWord);
-        this.setState({searchWord: ''})
+        setSearchWord('')
     }
 
-    render() {
-        const { searchWord } = this.state;
-        return (
+    return (
             <header className={css.searchbar}>
-                <form className={css.form} onSubmit={this.handleSubmit}>
+                <form className={css.form} onSubmit={handleSubmitForm}>
                     <button type="submit" className={css.button}>
                     <span className={css.buttonLabel}>Search</span>
                     </button>
 
                     <input
                         className={css.input}
-                        onChange={this.handleChange}
+                        onChange={handleChange}
                         name="searchWord"
                         value={searchWord}
                         type="text"
@@ -48,5 +41,4 @@ export class Searchbar extends Component {
                 </form>
             </header>
         )
-    }
 }
