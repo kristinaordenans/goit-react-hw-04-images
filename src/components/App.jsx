@@ -1,16 +1,84 @@
 import React from "react";
-import { Component } from 'react';
+// import { Component } from 'react';
+import { useState, useRef } from 'react';
+
 import { Searchbar } from "./Searchbar/Searchbar";
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { PixabayAPI } from './FetchPic/FetchPic';
 import { LoadMoreBtn } from './Button/Button';
 import { Loader } from './Loader/Loader';
 import css from "./App.module.css";
+import { useState } from "react";
 
 
 const pixabayAPI = new PixabayAPI(); 
 
-export class App extends Component{
+export const App = () => {
+    const previousKeyWordRef = useRef('');
+    const [keyWord, setKeyWord] = useState('');
+    const [error, setError] = useState(false);
+    const [images, setImages] = useState([]);
+    const [page, setPage] = useState(1);
+    const [morePics, setMorePics] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    
+    const handleSearchImg = searchWord => {
+        setKeyWord((searchWord), setPage(1))
+    }
+
+    const  hamdleLoadMoreButton = () => {
+        setPage(prevState => prevState + 1);
+    }
+    
+    const fetchPicData = async () => {
+      pixabayAPI.q = keyWord.trim();
+      pixabayAPI.page = page;
+
+      try { 
+        if (previousKeyWordRef.current !== keyWord) {
+          setImages([])
+        }
+        
+        
+          setError(false);
+          setIsLoading(true);
+    
+
+        const { data: { totalHits, hits } } = await pixabayAPI.fetchPhotos()
+          if (totalHits > 0) {
+              const newHits = hits.map(({ id, webformatURL, largeImageURL }) => ({ id, webformatURL, largeImageURL }));
+              setImages(pverState => [...pverState, ...newHits]);
+
+          const totalPage = Math.ceil(totalHits / pixabayAPI.perPage);
+              setMorePics(totalPage !== page);
+        }
+      }
+      catch (error) {
+        this.setState({
+          error,
+          images: [],
+          morePics: false,
+        })
+      } finally {
+        this.setState({ isLoading: false })
+      };
+    
+  }
+    
+    return (
+      <div>
+        <Searchbar handleSubmit={handleSearchImg} />
+        <div className={css.container}>
+          {!error && <ImageGallery images={images} />}
+          {isLoading && <Loader/>}
+          {morePics && <LoadMoreBtn handleClick={hamdleLoadMoreButton} />}
+        </div>
+      </div>
+  );
+
+}
+
+export class OldApp extends Component{
   state = {
     keyWord: '',
     error: false,
@@ -21,11 +89,6 @@ export class App extends Component{
     isLoading: false
   }
 
-  // togleModal = () =>{
-  //    this.setState(({ showModal }) => ({
-  //      showModal: !showModal,
-  //    }));
-  //  }
 
   handleSearchImg = searchWord => {
     this.setState({
